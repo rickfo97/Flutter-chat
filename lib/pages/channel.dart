@@ -9,13 +9,11 @@ import 'package:flutter_chat/utils/user.dart';
 import 'package:flutter_chat/utils/channel_manager.dart';
 import 'package:flutter_chat/events/message_event.dart';
 
-
 class ChannelPage extends StatefulWidget {
   final String title = "Test";
   final Channel channel;
 
-  ChannelPage({Key key, @required this.channel})
-    : super(key: key);
+  ChannelPage({Key key, @required this.channel}) : super(key: key);
 
   ChannelState createState() => new ChannelState();
 }
@@ -27,17 +25,15 @@ class ChannelState extends State<ChannelPage> {
 
   void initState() {
     super.initState();
-    currentUser = new User(new Random().nextInt(10000000).toString(), new Random().nextInt(532151).toString());
+    currentUser = new User(new Random().nextInt(10000000).toString(),
+        new Random().nextInt(532151).toString());
 
-    Connection.getChannel().stream.listen(
-            (jsonString){
-              Map message = json.decode(jsonString);
-              print(message);
-              var event = new MessageEvent.fromJson(message);
-              ChannelManager.newMessage(event);
-              setState(() => currentUser);
-            }
-    );
+    Connection.getChannel().stream.listen((jsonString) {
+      Map message = json.decode(jsonString);
+      var event = new MessageEvent.fromJson(message);
+      ChannelManager.newMessage(event);
+      setState(() => currentUser);
+    });
   }
 
   Widget build(BuildContext context) {
@@ -52,14 +48,15 @@ class ChannelState extends State<ChannelPage> {
           children: <Widget>[
             new Flexible(
                 child: new ListView.builder(
-                    shrinkWrap: false,
-                    itemBuilder: (BuildContext context, int index) =>
-                        _makeElement(index),
-                  reverse: true,
-                  padding: new EdgeInsets.all(6.0),
-                )
+              shrinkWrap: false,
+              itemBuilder: (BuildContext context, int index) =>
+                  _makeElement(index),
+              reverse: true,
+              padding: new EdgeInsets.all(6.0),
+            )),
+            new Divider(
+              height: 1.0,
             ),
-            new Divider(height: 1.0,),
             new Container(
               child: _buildComposer(),
               decoration: new BoxDecoration(color: Theme.of(context).cardColor),
@@ -86,10 +83,9 @@ class ChannelState extends State<ChannelPage> {
                     });
                   },
                   onSubmitted: _submitMsg,
-                  decoration:
-                  new InputDecoration.collapsed(
-                      hintText: "Send a message",
-                      //enabled: Connection.getChannel().closeReason == null
+                  decoration: new InputDecoration.collapsed(
+                    hintText: "Send a message",
+                    //enabled: Connection.getChannel().closeReason == null
                   ),
                 ),
               ),
@@ -97,25 +93,22 @@ class ChannelState extends State<ChannelPage> {
                   margin: new EdgeInsets.symmetric(horizontal: 3.0),
                   child: Theme.of(context).platform == TargetPlatform.iOS
                       ? new CupertinoButton(
-                      child: new Text("Submit"),
-                      onPressed: _isWriting ? () => _submitMsg(_controller.text)
-                          : null
-                  )
+                          child: new Text("Submit"),
+                          onPressed: _isWriting
+                              ? () => _submitMsg(_controller.text)
+                              : null)
                       : new IconButton(
-                    icon: new Icon(Icons.message),
-                    onPressed: _isWriting
-                        ? () => _submitMsg(_controller.text)
-                        : null,
-                  )
-              ),
+                          icon: new Icon(Icons.message),
+                          onPressed: _isWriting
+                              ? () => _submitMsg(_controller.text)
+                              : null,
+                        )),
             ],
           ),
           decoration: Theme.of(context).platform == TargetPlatform.iOS
               ? new BoxDecoration(
-              border:
-              new Border(top: new BorderSide(color: Colors.brown))) :
-          null
-      ),
+                  border: new Border(top: new BorderSide(color: Colors.brown)))
+              : null),
     );
   }
 
@@ -123,22 +116,40 @@ class ChannelState extends State<ChannelPage> {
     if (index >= widget.channel.messageHistory.length) return null;
 
     Message msg = widget.channel.messageHistory[index];
+    bool sender = msg.user.guid == currentUser.guid;
 
-    TextAlign sender = msg.user.guid == currentUser.guid ? TextAlign.right : TextAlign.left;
+    TextAlign msgAlign = sender ? TextAlign.right : TextAlign.left;
 
     return Container(
-      padding: EdgeInsets.all(5.0),
-      child: Text(
-        msg.message,
-        textAlign: sender,
-      ),
-    );
+        padding: EdgeInsets.all(10.0),
+        margin: new EdgeInsets.all(4.0),
+        decoration: new BoxDecoration(
+          color: sender
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).splashColor,
+          borderRadius: new BorderRadius.all(new Radius.elliptical(120.0, 120.0)),
+        ),
+        child: new Column(
+          crossAxisAlignment: sender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              msg.user.username,
+              textAlign: msgAlign,
+              style: Theme.of(context).textTheme.subhead,
+            ),
+            Text(
+              msg.message,
+              textAlign: msgAlign,
+            )
+          ],
+        ) );
   }
 
   void _submitMsg(String txt) {
     MessageEvent messageEvent;
     if (_controller.text.isNotEmpty) {
-      messageEvent = new MessageEvent(widget.channel.guid, new Message(_controller.text, currentUser));
+      messageEvent = new MessageEvent(
+          widget.channel.guid, new Message(_controller.text, currentUser));
       Connection.getChannel().sink.add(json.encode(messageEvent));
       _controller.text = '';
     }
