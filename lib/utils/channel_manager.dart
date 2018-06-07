@@ -22,6 +22,12 @@ class ChannelManager{
     manager._channels.add(channel);
   }
 
+  static Channel getChannel(int index){
+    ChannelManager manager = getManager();
+
+    return manager._channels[index];
+  }
+
   static void remove(String guid){
     ChannelManager manager = getManager();
 
