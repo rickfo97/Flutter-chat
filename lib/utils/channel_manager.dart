@@ -1,5 +1,7 @@
 import 'channel.dart';
+import 'dart:convert';
 import 'package:flutter_chat/events/message_event.dart';
+import 'package:flutter_chat/utils/server_connection.dart';
 
 class ChannelManager{
   static ChannelManager _singleton;
@@ -7,6 +9,14 @@ class ChannelManager{
 
   ChannelManager(){
     _singleton = this;
+
+    Connection.getChannel().stream.listen((jsonString) {
+      Map message = json.decode(jsonString);
+      if(message['event'] == 'message'){
+        MessageEvent event = new MessageEvent.fromJson(message);
+        newMessage(event);
+      }
+    });
   }
 
   static ChannelManager getManager(){

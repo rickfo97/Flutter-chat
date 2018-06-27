@@ -7,7 +7,6 @@ class Connection{
 
   Connection(String url){
     _channel = new IOWebSocketChannel.connect(url);
-    _channel.stream.asBroadcastStream();
 
     Connection.singleton = this;
   }

@@ -5,6 +5,7 @@ import 'package:flutter_chat/utils/server_connection.dart';
 import 'package:flutter_chat/utils/message.dart';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter_chat/utils/user.dart';
 import 'package:flutter_chat/utils/channel_manager.dart';
 import 'package:flutter_chat/events/message_event.dart';
@@ -21,19 +22,13 @@ class ChannelPage extends StatefulWidget {
 class ChannelState extends State<ChannelPage> {
   TextEditingController _controller = new TextEditingController();
   bool _isWriting = false;
-  User currentUser;
+  final String hintText = "Send a message";
+  StreamSubscription _subscription;
 
   void initState() {
-    super.initState();
-    currentUser = new User(new Random().nextInt(10000000).toString(),
-        new Random().nextInt(532151).toString());
+    _subscription = widget.channel.newMessage.listen((m) => setState(() => _isWriting));
 
-    Connection.getChannel().stream.listen((jsonString) {
-      Map message = json.decode(jsonString);
-      var event = new MessageEvent.fromJson(message);
-      ChannelManager.newMessage(event);
-      setState(() => currentUser);
-    });
+    super.initState();
   }
 
   Widget build(BuildContext context) {
@@ -47,7 +42,9 @@ class ChannelState extends State<ChannelPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             new Flexible(
+                // TODO: Switch to animatedList or scrollview?
                 child: new ListView.builder(
+              // Want it to take up as much space as possible
               shrinkWrap: false,
               itemBuilder: (BuildContext context, int index) =>
                   _makeElement(index),
@@ -84,7 +81,7 @@ class ChannelState extends State<ChannelPage> {
                   },
                   onSubmitted: _submitMsg,
                   decoration: new InputDecoration.collapsed(
-                    hintText: "Send a message",
+                    hintText: hintText,
                     //enabled: Connection.getChannel().closeReason == null
                   ),
                 ),
@@ -112,44 +109,64 @@ class ChannelState extends State<ChannelPage> {
     );
   }
 
+  /*
+  *   make each element of the listview based on the channel messages list
+  *   TODO: Style if message is being sent or failed to deliver
+   */
   Widget _makeElement(int index) {
     if (index >= widget.channel.messageHistory.length) return null;
 
     Message msg = widget.channel.messageHistory[index];
-    bool sender = msg.user.guid == currentUser.guid;
+
+    bool previousSender = false;
+    if(index < widget.channel.messageHistory.length){
+      Message previousMsg = widget.channel.messageHistory[index + 1];
+      previousSender = msg.user.guid == previousMsg.user.guid;
+    }
+
+    bool sender = msg.user.guid == UserManager.getUser().guid;
 
     TextAlign msgAlign = sender ? TextAlign.right : TextAlign.left;
 
     return Container(
         padding: EdgeInsets.all(10.0),
-        margin: new EdgeInsets.all(4.0),
+        margin: previousSender ? null : new EdgeInsets.all(4.0),
         decoration: new BoxDecoration(
           color: sender
               ? Theme.of(context).primaryColor
               : Theme.of(context).splashColor,
-          borderRadius: new BorderRadius.all(new Radius.elliptical(120.0, 120.0)),
+          borderRadius:
+              new BorderRadius.all(new Radius.elliptical(120.0, 120.0)),
         ),
         child: new Column(
-          crossAxisAlignment: sender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              msg.user.username,
-              textAlign: msgAlign,
-              style: Theme.of(context).textTheme.subhead,
-            ),
-            Text(
-              msg.message,
-              textAlign: msgAlign,
-            )
-          ],
-        ) );
+          crossAxisAlignment:
+              sender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children:
+            _buildMessage(msg, msgAlign, previousSender),
+        ));
   }
 
+  List<Widget> _buildMessage(Message msg, TextAlign align, bool previous){
+    List<Widget> messageWidget = new List();
+    if(previous)
+      messageWidget.add(Text(
+        msg.user.username,
+        textAlign: align,
+        style: Theme.of(context).textTheme.subhead,
+      ));
+    messageWidget.add(Text(
+      msg.message,
+      textAlign: align,
+    ));
+    return messageWidget;
+  }
+
+  //  Send a new message to server and add it to message history
   void _submitMsg(String txt) {
     MessageEvent messageEvent;
     if (_controller.text.isNotEmpty) {
-      messageEvent = new MessageEvent(
-          widget.channel.guid, new Message(_controller.text, currentUser));
+      messageEvent = new MessageEvent(widget.channel.guid,
+          new Message(_controller.text, UserManager.getUser()));
       Connection.getChannel().sink.add(json.encode(messageEvent));
       _controller.text = '';
     }
@@ -159,9 +176,9 @@ class ChannelState extends State<ChannelPage> {
       widget.channel.addMessage(messageEvent);
     });
   }
-
   @override
   void dispose() {
+    _subscription.cancel();
     super.dispose();
   }
 }

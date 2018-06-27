@@ -1,12 +1,20 @@
 import 'package:flutter_chat/utils/message.dart';
 import 'package:flutter_chat/utils/user.dart';
 import 'package:flutter_chat/events/message_event.dart';
+import 'dart:async';
 
 class Channel{
   String guid;
 
   List<Message> messageHistory = new List<Message>();
   List<User> users;
+  StreamController<String> _controller;
+
+  Channel(){
+    _controller = new StreamController.broadcast();
+  }
+
+  Stream get newMessage => _controller.stream;
 
   bool loadChannel(){
     if(guid.length == 0)

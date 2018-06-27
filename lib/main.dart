@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'utils/server_connection.dart';
-import 'pages/channel.dart';
+import 'package:flutter_chat/pages/login.dart';
 import 'package:flutter_chat/utils/channel.dart';
 import 'package:flutter_chat/utils/channel_manager.dart';
 
@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
 
     return new MaterialApp(
       title: title,
-      home: new ChannelPage(channel: channel),
+      home: new LoginPage(),
     );
   }
 }
